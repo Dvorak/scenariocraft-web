@@ -1,5 +1,8 @@
+// @ts-expect-error - no type decls
 import "@fontsource-variable/inter";
+// @ts-expect-error - no type decls
 import "@fontsource/jetbrains-mono/400.css";
+// @ts-expect-error - no type decls
 import "@fontsource/jetbrains-mono/500.css";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
