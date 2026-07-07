@@ -1,24 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { AppHeader } from "@/components/scenariocraft/AppHeader";
+import { WorkspaceView } from "@/components/scenariocraft/WorkspaceView";
+import { AdvancedView } from "@/components/scenariocraft/AdvancedView";
+import { useScenarioStore } from "@/lib/scenariocraft/store";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
 function Index() {
+  const view = useScenarioStore((s) => s.view);
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="min-h-screen bg-background">
+      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-6 py-8 lg:px-10 lg:py-10">
+        <AppHeader />
+        {view === "workspace" ? <WorkspaceView /> : <AdvancedView />}
+      </div>
     </div>
   );
 }
