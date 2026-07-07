@@ -2,37 +2,21 @@ import { Activity } from "lucide-react";
 import { useScenarioStore } from "@/lib/scenariocraft/store";
 import { Card, StatusDot } from "../primitives";
 
-const labelForStatus = (s: string) => {
-  switch (s) {
-    case "passed":
-      return "Passed";
-    case "warning":
-      return "Warning";
-    case "failed":
-      return "Failed";
-    case "running":
-      return "Running";
-    default:
-      return "Idle";
-  }
+const noteFor = (s: string) => {
+  if (s === "passed") return "Passed";
+  if (s === "warning") return "Warning";
+  if (s === "failed") return "Failed";
+  if (s === "running") return "Running";
+  return "Idle";
 };
 
 export function StatusCard() {
   const status = useScenarioStore((s) => s.status);
-
-  const items: { key: string; label: string; status: string }[] = [
-    { key: "spec", label: "Spec", status: status.spec === "idle" ? "idle" : status.spec === "warning" ? "warning" : "passed" === status.spec ? "passed" : status.spec === "running" ? "running" : "passed" },
-    { key: "checks", label: "Checks", status: status.checks },
-    { key: "quality", label: "Quality", status: status.quality },
-    { key: "simulation", label: "Simulation", status: status.simulation },
-  ];
-
-  // Simpler mapping: use raw status
   const rendered = [
-    { label: "Spec", status: status.spec === "passed" ? "passed" : status.spec === "running" ? "running" : status.spec === "warning" ? "warning" : status.spec === "failed" ? "failed" : "idle", note: status.spec === "passed" ? "Generated" : labelForStatus(status.spec) },
-    { label: "Checks", status: status.checks, note: labelForStatus(status.checks) },
-    { label: "Quality", status: status.quality, note: labelForStatus(status.quality) },
-    { label: "Simulation", status: status.simulation, note: labelForStatus(status.simulation) },
+    { label: "Spec", status: status.spec, note: status.spec === "passed" ? "Generated" : noteFor(status.spec) },
+    { label: "Checks", status: status.checks, note: noteFor(status.checks) },
+    { label: "Quality", status: status.quality, note: noteFor(status.quality) },
+    { label: "Simulation", status: status.simulation, note: noteFor(status.simulation) },
   ];
 
   return (
@@ -50,5 +34,4 @@ export function StatusCard() {
       </div>
     </Card>
   );
-  void items;
 }
