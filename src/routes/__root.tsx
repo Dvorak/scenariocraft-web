@@ -1,5 +1,7 @@
 // @ts-expect-error - no type decls for @fontsource
 import "@fontsource-variable/inter";
+// @ts-expect-error - no type decls for @fontsource
+import "@fontsource-variable/space-grotesk";
 import "@fontsource/jetbrains-mono/400.css";
 import "@fontsource/jetbrains-mono/500.css";
 
