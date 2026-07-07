@@ -89,3 +89,31 @@
     -webkit-font-smoothing: antialiased;
   }
 }
+
+.scenario-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: var(--border);
+  border-radius: 999px;
+  outline: none;
+}
+.scenario-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--coral);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(15,15,15,.2);
+  cursor: pointer;
+}
+.scenario-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--coral);
+  border: 2px solid #fff;
+  cursor: pointer;
+}
