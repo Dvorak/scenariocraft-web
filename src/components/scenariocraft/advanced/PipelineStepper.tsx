@@ -10,8 +10,9 @@ import {
   Wrench,
   type LucideIcon,
 } from "lucide-react";
-import { STAGES, type StageId } from "@/lib/scenariocraft/mockData";
+import { emptyStages, projectWorkflowResult, STAGES } from "@/lib/scenariocraft/resultView";
 import { useScenarioStore } from "@/lib/scenariocraft/store";
+import type { StageId } from "@/lib/scenariocraft/types";
 import { StatusDot } from "../primitives";
 
 const icons: Record<StageId, LucideIcon> = {
@@ -26,9 +27,12 @@ const icons: Record<StageId, LucideIcon> = {
 };
 
 export function PipelineStepper() {
-  const status = useScenarioStore((s) => s.status);
+  const workflow = useScenarioStore((s) => s.workflow);
+  const running = useScenarioStore((s) => s.running);
   const active = useScenarioStore((s) => s.activeStage);
   const setStage = useScenarioStore((s) => s.setStage);
+  const status = workflow ? projectWorkflowResult(workflow).stages : emptyStages();
+  if (running && !workflow) status.intent = "running";
 
   return (
     <div
