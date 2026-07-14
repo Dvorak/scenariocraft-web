@@ -1,0 +1,187 @@
+import { describe, expect, it } from "vitest";
+import { ScenarioCraftApiError } from "./api";
+import { createScenarioStore, type ScenarioApi } from "./store";
+import type { CapabilitiesResponse, WorkflowEnvelope } from "./types";
+
+const capabilities: CapabilitiesResponse = {
+  providers: {
+    controlled_case: { configured: true },
+    local_llm: {
+      configured: true,
+      reachable: true,
+      server_url: "http://localhost:11434/v1",
+      models: ["qwen2.5:7b"],
+      selected_model: "qwen2.5:7b",
+      message: "Ready",
+    },
+  },
+  controlled_cases: [
+    {
+      id: "cut_in",
+      template_id: "cut_in",
+      display_name: "Cut-in",
+      description: "Adjacent vehicle cuts in.",
+      prompt_variants: ["A vehicle cuts in.", "Create a cut-in conflict."],
+    },
+    {
+      id: "lead_vehicle_braking",
+      template_id: "lead_vehicle_braking",
+      display_name: "Lead vehicle braking",
+      description: "Lead vehicle brakes.",
+      prompt_variants: ["A lead vehicle brakes."],
+    },
+  ],
+};
+
+const envelope = {
+  run_id: "run-1",
+  artifact_urls: {},
+  result: {
+    request: { scenario_text: "A vehicle cuts in.", provider_name: "controlled_case" },
+    status: { terminal_status: "passed", terminal_reason: "Passed", warnings: [] },
+    artifacts: {},
+    spec: { scenario_type: "cut_in", actors: [], intended_criticality: {} },
+  },
+} satisfies WorkflowEnvelope;
+
+describe("scenario store", () => {
+  it("loads capabilities and initializes a stable controlled case prompt", async () => {
+    const api: ScenarioApi = {
+      getCapabilities: async () => capabilities,
+      generateScenario: async () => envelope,
+      reviseScenario: async () => envelope,
+      repairScenario: async () => ({
+        run_id: "repair-1",
+        source_run_id: "run-1",
+        repair_result: {},
+        artifact_urls: {},
+      }),
+    };
+    const store = createScenarioStore(api);
+
+    await store.getState().initialize();
+
+    expect(store.getState().selectedCaseId).toBe("cut_in");
+    expect(store.getState().request).toBe("A vehicle cuts in.");
+    expect(store.getState().provider).toBe("controlled_case");
+  });
+
+  it("generates through the API and stores the real workflow envelope", async () => {
+    let submittedProvider = "";
+    const api: ScenarioApi = {
+      getCapabilities: async () => capabilities,
+      generateScenario: async (request) => {
+        submittedProvider = request.provider;
+        return envelope;
+      },
+      reviseScenario: async () => envelope,
+      repairScenario: async () => ({
+        run_id: "repair-1",
+        source_run_id: "run-1",
+        repair_result: {},
+        artifact_urls: {},
+      }),
+    };
+    const store = createScenarioStore(api);
+    await store.getState().initialize();
+
+    await store.getState().generate();
+
+    expect(submittedProvider).toBe("controlled_case");
+    expect(store.getState().workflow?.run_id).toBe("run-1");
+    expect(store.getState().running).toBe(false);
+    expect(store.getState().error).toBeNull();
+  });
+
+  it("sends revisions through the dedicated endpoint and replaces the active workflow", async () => {
+    let revisionRequest = "";
+    const revised = structuredClone(envelope);
+    revised.run_id = "run-2";
+    const api: ScenarioApi = {
+      getCapabilities: async () => capabilities,
+      generateScenario: async () => envelope,
+      reviseScenario: async (request) => {
+        revisionRequest = request.revision_request ?? "";
+        return revised;
+      },
+      repairScenario: async () => ({
+        run_id: "repair-1",
+        source_run_id: "run-1",
+        repair_result: {},
+        artifact_urls: {},
+      }),
+    };
+    const store = createScenarioStore(api);
+    await store.getState().initialize();
+    await store.getState().generate();
+    store.getState().setRevisionRequest("Use a shorter gap.");
+
+    await store.getState().revise();
+
+    expect(revisionRequest).toBe("Use a shorter gap.");
+    expect(store.getState().workflow?.run_id).toBe("run-2");
+    expect(store.getState().revisionRequest).toBe("");
+  });
+
+  it("clears stale workflow output when generation inputs change", async () => {
+    const api: ScenarioApi = {
+      getCapabilities: async () => capabilities,
+      generateScenario: async () => envelope,
+      reviseScenario: async () => envelope,
+      repairScenario: async () => ({
+        run_id: "repair-1",
+        source_run_id: "run-1",
+        repair_result: {},
+        artifact_urls: {},
+      }),
+    };
+    const store = createScenarioStore(api);
+    await store.getState().initialize();
+    await store.getState().generate();
+
+    store.getState().setControlledCase("lead_vehicle_braking");
+
+    expect(store.getState().request).toBe("A lead vehicle brakes.");
+    expect(store.getState().workflow).toBeNull();
+    expect(store.getState().repairResult).toBeNull();
+  });
+
+  it.each(["unsupported", "clarification_required", "rejected"])(
+    "preserves the structured %s intent outcome from the API",
+    async (status) => {
+      const api: ScenarioApi = {
+        getCapabilities: async () => capabilities,
+        generateScenario: async () => {
+          throw new ScenarioCraftApiError(422, {
+            error: "intent_outcome",
+            message: `Intent ${status}.`,
+            outcome: {
+              status,
+              rationale: "The request cannot be accepted as submitted.",
+              clarification_question:
+                status === "clarification_required" ? "Which interaction should be tested?" : null,
+              nearest_template_candidates: ["cut_in"],
+            },
+          });
+        },
+        reviseScenario: async () => envelope,
+        repairScenario: async () => ({
+          run_id: "repair-1",
+          source_run_id: "run-1",
+          repair_result: {},
+          artifact_urls: {},
+        }),
+      };
+      const store = createScenarioStore(api);
+      await store.getState().initialize();
+      store.getState().setProvider("local_llm");
+
+      await store.getState().generate();
+
+      expect(store.getState().error).toBe(`Intent ${status}.`);
+      expect(store.getState().outcome?.status).toBe(status);
+      expect(store.getState().workflow).toBeNull();
+      expect(store.getState().running).toBe(false);
+    },
+  );
+});

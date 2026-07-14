@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { AppHeader } from "@/components/scenariocraft/AppHeader";
 import { WorkspaceView } from "@/components/scenariocraft/WorkspaceView";
 import { AdvancedView } from "@/components/scenariocraft/AdvancedView";
@@ -10,9 +11,15 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const view = useScenarioStore((s) => s.view);
+  const initialize = useScenarioStore((s) => s.initialize);
+
+  useEffect(() => {
+    void initialize();
+  }, [initialize]);
+
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-6 py-8 lg:px-10 lg:py-10">
+      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 py-5 sm:px-6 sm:py-8 lg:px-10 lg:py-10">
         <AppHeader />
         {view === "workspace" ? <WorkspaceView /> : <AdvancedView />}
       </div>
