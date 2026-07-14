@@ -1,41 +1,55 @@
-import { FileText, Car, User } from "lucide-react";
-import { brief, metrics } from "@/lib/scenariocraft/mockData";
+import { Car, FileText, Gauge } from "lucide-react";
+import { projectWorkflowResult } from "@/lib/scenariocraft/resultView";
+import { useScenarioStore } from "@/lib/scenariocraft/store";
 import { Card, MetricTile } from "../primitives";
 
 export function ScenarioBrief() {
+  const workflow = useScenarioStore((state) => state.workflow);
+  if (!workflow) {
+    return (
+      <Card title="Scenario Brief" icon={<FileText className="h-4 w-4" />}>
+        <p className="text-sm text-muted-foreground">
+          Generate a scenario to see its semantic brief.
+        </p>
+      </Card>
+    );
+  }
+  const brief = projectWorkflowResult(workflow).brief;
+
   return (
     <Card title="Scenario Brief" icon={<FileText className="h-4 w-4" />}>
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-        <MetricTile label="Target TTC" value={metrics.targetTTC} />
-        <MetricTile label="Lead Time" value={metrics.leadTime} />
-        <MetricTile label="Trigger Threshold" value={metrics.triggerThreshold} />
-        <MetricTile label="Pedestrian Time" value={metrics.pedestrianTime} />
-      </div>
-
-      <div className="mt-3 grid grid-cols-2 gap-2.5">
-        <div className="flex items-center gap-3 rounded-xl border border-border/70 bg-surface-muted px-3.5 py-3">
-          <div className="grid h-9 w-9 place-items-center rounded-lg bg-surface text-foreground">
-            <Car className="h-4 w-4" />
-          </div>
-          <div className="min-w-0">
-            <div className="text-[11px] uppercase tracking-[0.1em] text-muted-foreground">Ego</div>
-            <div className="font-mono text-[15px] font-medium tabular-nums">{brief.egoSpeed}</div>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 rounded-xl border border-border/70 bg-surface-muted px-3.5 py-3">
-          <div className="grid h-9 w-9 place-items-center rounded-lg bg-surface text-foreground">
-            <User className="h-4 w-4" />
-          </div>
-          <div className="min-w-0">
-            <div className="text-[11px] uppercase tracking-[0.1em] text-muted-foreground">Pedestrian</div>
-            <div className="font-mono text-[15px] font-medium tabular-nums">{brief.pedestrianSpeed}</div>
-          </div>
+      <div className="grid grid-cols-2 gap-2.5">
+        <ActorTile icon={<Car className="h-4 w-4" />} label="Ego" value={brief.egoSpeed} />
+        <ActorTile
+          icon={<Gauge className="h-4 w-4" />}
+          label={brief.secondaryLabel}
+          value={brief.secondaryValue}
+        />
+        <div className="col-span-2">
+          <MetricTile label="Target TTC" value={brief.targetTtc} tone="coral" />
         </div>
       </div>
-
-      <p className="mt-4 border-t border-border/70 pt-3 text-xs text-muted-foreground">
-        {brief.context}
-      </p>
+      {brief.context && <p className="mt-3 text-xs text-muted-foreground">{brief.context}</p>}
     </Card>
+  );
+}
+
+function ActorTile({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-2.5 rounded-xl border border-border/70 bg-surface-muted px-3 py-2.5">
+      <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-surface">{icon}</div>
+      <div className="min-w-0">
+        <div className="truncate text-[11px] text-muted-foreground">{label}</div>
+        <div className="truncate font-mono text-sm font-medium tabular-nums">{value}</div>
+      </div>
+    </div>
   );
 }

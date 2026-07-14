@@ -93,8 +93,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: "ScenarioCraft" },
       {
         property: "og:description",
-        content:
-          "A calm engineering cockpit for OpenSCENARIO authoring, validation, and repair.",
+        content: "A calm engineering cockpit for OpenSCENARIO authoring, validation, and repair.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

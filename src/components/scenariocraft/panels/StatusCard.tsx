@@ -1,33 +1,38 @@
 import { Activity } from "lucide-react";
+import { emptyStages, projectWorkflowResult } from "@/lib/scenariocraft/resultView";
 import { useScenarioStore } from "@/lib/scenariocraft/store";
+import type { StageStatus } from "@/lib/scenariocraft/types";
 import { Card, StatusDot } from "../primitives";
 
-const noteFor = (s: string) => {
-  if (s === "passed") return "Passed";
-  if (s === "warning") return "Warning";
-  if (s === "failed") return "Failed";
-  if (s === "running") return "Running";
-  return "Idle";
+const noteFor = (status: StageStatus, generated = false) => {
+  if (status === "passed") return generated ? "Generated" : "Passed";
+  if (status === "warning") return "Warning";
+  if (status === "failed") return "Failed";
+  if (status === "running") return "Running";
+  return "Not run";
 };
 
 export function StatusCard() {
-  const status = useScenarioStore((s) => s.status);
+  const workflow = useScenarioStore((state) => state.workflow);
+  const running = useScenarioStore((state) => state.running);
+  const stages = workflow ? projectWorkflowResult(workflow).stages : emptyStages();
+  if (running && !workflow) stages.intent = "running";
   const rendered = [
-    { label: "Spec", status: status.spec, note: status.spec === "passed" ? "Generated" : noteFor(status.spec) },
-    { label: "Checks", status: status.checks, note: noteFor(status.checks) },
-    { label: "Quality", status: status.quality, note: noteFor(status.quality) },
-    { label: "Simulation", status: status.simulation, note: noteFor(status.simulation) },
+    { label: "Scenario", status: stages.spec, note: noteFor(stages.spec, true) },
+    { label: "Checks", status: stages.checks, note: noteFor(stages.checks) },
+    { label: "OSC Quality", status: stages.quality, note: noteFor(stages.quality) },
+    { label: "Simulation", status: stages.simulation, note: noteFor(stages.simulation) },
   ];
 
   return (
     <Card title="Status" icon={<Activity className="h-4 w-4" />}>
-      <div className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
-        {rendered.map((r) => (
-          <div key={r.label}>
-            <div className="text-[11px] uppercase tracking-[0.1em] text-muted-foreground">{r.label}</div>
-            <div className="mt-1.5 flex items-center gap-2 text-sm font-medium">
-              <StatusDot status={r.status as never} />
-              {r.note}
+      <div className="grid grid-cols-2 gap-x-3 gap-y-3 sm:grid-cols-4 sm:gap-x-2">
+        {rendered.map((item) => (
+          <div key={item.label} className="min-w-0">
+            <div className="truncate text-[11px] text-muted-foreground">{item.label}</div>
+            <div className="mt-1 flex min-w-0 items-center gap-1 text-[12px] font-semibold">
+              <StatusDot status={item.status} />
+              <span className="truncate">{item.note}</span>
             </div>
           </div>
         ))}
