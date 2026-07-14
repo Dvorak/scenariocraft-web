@@ -84,22 +84,23 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "ScenarioCraft — Scenario authoring & validation" },
+      { title: "ScenarioCraft — Generate, validate & iterate" },
       {
         name: "description",
         content:
-          "Author, validate, and repair OpenSCENARIO/OpenDRIVE scenarios for autonomous driving.",
+          "Generate, validate, and iterate OpenSCENARIO/OpenDRIVE scenarios for autonomous driving.",
       },
       { property: "og:title", content: "ScenarioCraft" },
       {
         property: "og:description",
-        content: "A calm engineering cockpit for OpenSCENARIO authoring, validation, and repair.",
+        content: "A calm engineering cockpit for structured scenario generation, validation, and iteration.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      { rel: "icon", href: "/scenariocraft-mark.svg", type: "image/svg+xml" },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],
   }),
