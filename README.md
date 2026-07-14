@@ -1,9 +1,10 @@
 # ScenarioCraft Web
 
-This repository is the React user interface for ScenarioCraft. Scenario
-generation, checks, repair, and artifact production remain in the Python
-ScenarioCraft application; this frontend consumes those workflows through the
-local HTTP API.
+This repository is the React user interface for
+[ScenarioCraft](https://github.com/Dvorak/ScenarioCraft-Agent). It is pinned as
+the `web/` Git submodule in the main repository. Scenario generation, checks,
+repair, and artifact production remain in the Python ScenarioCraft application;
+this frontend consumes those workflows through the local HTTP API.
 
 From the parent ScenarioCraft repository, install and start both services:
 
