@@ -98,6 +98,8 @@ export type RepairEnvelope = {
   artifact_urls: Record<string, string>;
 };
 
+export type RepairProvider = "local_llm" | "deterministic_demo";
+
 export type IntentOutcome = {
   status?: string;
   rationale?: string;
@@ -117,6 +119,7 @@ export type GenerateRequest = {
   scenario_text: string;
   provider: "controlled_case" | "local_llm";
   controlled_case_id?: string;
+  demo_case_id?: string;
   revision_request?: string;
   base_scenario_type?: string;
   options?: Record<string, unknown>;

@@ -12,6 +12,7 @@ import type {
   GenerateRequest,
   IntentOutcome,
   RepairEnvelope,
+  RepairProvider,
   StageId,
   WorkflowEnvelope,
 } from "./types";
@@ -23,7 +24,7 @@ export type ScenarioApi = {
   getCapabilities: () => Promise<CapabilitiesResponse>;
   generateScenario: (request: GenerateRequest) => Promise<WorkflowEnvelope>;
   reviseScenario: (request: GenerateRequest) => Promise<WorkflowEnvelope>;
-  repairScenario: (runId: string) => Promise<RepairEnvelope>;
+  repairScenario: (runId: string, provider: RepairProvider) => Promise<RepairEnvelope>;
 };
 
 export type ScenarioState = {
@@ -42,12 +43,14 @@ export type ScenarioState = {
   running: boolean;
   revising: boolean;
   repairing: boolean;
+  repairProvider: RepairProvider;
   error: string | null;
   outcome: IntentOutcome | null;
   setView: (view: View) => void;
   setStage: (stage: StageId) => void;
   setRequest: (request: string) => void;
   setRevisionRequest: (request: string) => void;
+  setRepairProvider: (provider: RepairProvider) => void;
   setProvider: (provider: Provider) => void;
   setControlledCase: (caseId: string) => void;
   shufflePrompt: () => void;
@@ -82,12 +85,14 @@ export function createScenarioStore(api: ScenarioApi = defaultApi) {
     running: false,
     revising: false,
     repairing: false,
+    repairProvider: "deterministic_demo",
     error: null,
     outcome: null,
     setView: (view) => set({ view }),
     setStage: (activeStage) => set({ activeStage }),
     setRequest: (request) => set({ request, ...clearedCandidateState() }),
     setRevisionRequest: (revisionRequest) => set({ revisionRequest }),
+    setRepairProvider: (repairProvider) => set({ repairProvider }),
     setProvider: (provider) => {
       const next: Partial<ScenarioState> = {
         provider,
@@ -136,6 +141,9 @@ export function createScenarioStore(api: ScenarioApi = defaultApi) {
           request: firstCase?.prompt_variants[0] ?? "",
           initialized: true,
           initializing: false,
+          repairProvider: capabilities.providers.local_llm.configured
+            ? "local_llm"
+            : "deterministic_demo",
         });
       } catch (error) {
         set({ initializing: false, initialized: true, error: errorMessage(error) });
@@ -188,7 +196,10 @@ export function createScenarioStore(api: ScenarioApi = defaultApi) {
       if (state.repairing || !state.workflow) return;
       set({ repairing: true, error: null });
       try {
-        const repairResult = await api.repairScenario(state.workflow.run_id);
+        const repairResult = await api.repairScenario(
+          state.workflow.run_id,
+          state.repairProvider,
+        );
         set({ repairResult, repairing: false, activeStage: "repair" });
       } catch (error) {
         set({ repairing: false, error: errorMessage(error) });

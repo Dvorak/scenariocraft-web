@@ -184,4 +184,34 @@ describe("scenario store", () => {
       expect(store.getState().running).toBe(false);
     },
   );
+
+  it("uses the explicit local LLM provider for PatchSpec repair when available", async () => {
+    const repairable: WorkflowEnvelope = structuredClone(envelope);
+    repairable.result.status.terminal_status = "repair_required";
+    repairable.result.prepared_case = { repair_required: true };
+    let submittedProvider = "";
+    const api: ScenarioApi = {
+      getCapabilities: async () => capabilities,
+      generateScenario: async () => repairable,
+      reviseScenario: async () => repairable,
+      repairScenario: async (_runId, provider) => {
+        submittedProvider = provider;
+        return {
+          run_id: "repair-1",
+          source_run_id: "run-1",
+          repair_result: { terminal_status: "passed" },
+          artifact_urls: {},
+        };
+      },
+    };
+    const store = createScenarioStore(api);
+    await store.getState().initialize();
+    await store.getState().generate();
+
+    expect(store.getState().repairProvider).toBe("local_llm");
+    await store.getState().repair();
+
+    expect(submittedProvider).toBe("local_llm");
+    expect(store.getState().repairResult?.repair_result.terminal_status).toBe("passed");
+  });
 });

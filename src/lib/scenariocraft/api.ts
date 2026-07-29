@@ -3,6 +3,7 @@ import type {
   CapabilitiesResponse,
   GenerateRequest,
   RepairEnvelope,
+  RepairProvider,
   WorkflowEnvelope,
 } from "./types";
 
@@ -42,11 +43,14 @@ export async function reviseScenario(payload: GenerateRequest): Promise<Workflow
   });
 }
 
-export async function repairScenario(runId: string): Promise<RepairEnvelope> {
+export async function repairScenario(
+  runId: string,
+  provider: RepairProvider,
+): Promise<RepairEnvelope> {
   return requestJson<RepairEnvelope>("/api/scenarios/repair", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ run_id: runId, provider: "deterministic_demo" }),
+    body: JSON.stringify({ run_id: runId, provider }),
   });
 }
 
