@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ScenarioCraftApiError } from "./api";
 import { createScenarioStore, type ScenarioApi } from "./store";
-import type { CapabilitiesResponse, WorkflowEnvelope } from "./types";
+import type { CapabilitiesResponse, RunProgress, WorkflowEnvelope } from "./types";
 
 const capabilities: CapabilitiesResponse = {
   providers: {
@@ -91,6 +91,54 @@ describe("scenario store", () => {
     expect(store.getState().workflow?.run_id).toBe("run-1");
     expect(store.getState().running).toBe(false);
     expect(store.getState().error).toBeNull();
+  });
+
+  it("projects live workflow progress before the final envelope arrives", async () => {
+    const progress = {
+      run_id: "run-1",
+      status: "running",
+      active_stage: "build",
+      detail: "Building OpenSCENARIO and OpenDRIVE",
+      elapsed_ms: 1200,
+      stages: {
+        intent: { status: "passed", detail: "Intent resolved", duration_ms: 800 },
+        build: { status: "running", detail: "Building artifacts", duration_ms: null },
+      },
+      provider_usage: {
+        provider_name: "openai_compatible",
+        model: "qwen2.5:7b",
+        duration_ms: 800,
+        input_tokens: 320,
+        output_tokens: 40,
+        total_tokens: 360,
+        local: true,
+      },
+      artifact_urls: { preview: "/api/runs/run-1/artifacts/preview" },
+      result: null,
+      error: null,
+    } satisfies RunProgress;
+    const api: ScenarioApi = {
+      getCapabilities: async () => capabilities,
+      generateScenario: async (_request, onProgress) => {
+        onProgress?.(progress);
+        return envelope;
+      },
+      reviseScenario: async () => envelope,
+      repairScenario: async () => ({
+        run_id: "repair-1",
+        source_run_id: "run-1",
+        repair_result: {},
+        artifact_urls: {},
+      }),
+    };
+    const store = createScenarioStore(api);
+    await store.getState().initialize();
+
+    await store.getState().generate();
+
+    expect(store.getState().runProgress?.active_stage).toBe("build");
+    expect(store.getState().runProgress?.provider_usage?.total_tokens).toBe(360);
+    expect(store.getState().workflow?.run_id).toBe("run-1");
   });
 
   it("sends revisions through the dedicated endpoint and replaces the active workflow", async () => {

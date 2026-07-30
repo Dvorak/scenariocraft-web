@@ -11,7 +11,7 @@ export function AdvancedView() {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.22 }}
-        className="flex flex-col gap-5"
+        className="flex min-w-0 flex-col gap-5"
       >
         <PipelineStepper />
         <StageDetail />

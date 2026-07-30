@@ -13,6 +13,7 @@ import type {
   IntentOutcome,
   RepairEnvelope,
   RepairProvider,
+  RunProgress,
   StageId,
   WorkflowEnvelope,
 } from "./types";
@@ -22,8 +23,14 @@ type Provider = GenerateRequest["provider"];
 
 export type ScenarioApi = {
   getCapabilities: () => Promise<CapabilitiesResponse>;
-  generateScenario: (request: GenerateRequest) => Promise<WorkflowEnvelope>;
-  reviseScenario: (request: GenerateRequest) => Promise<WorkflowEnvelope>;
+  generateScenario: (
+    request: GenerateRequest,
+    onProgress?: (progress: RunProgress) => void,
+  ) => Promise<WorkflowEnvelope>;
+  reviseScenario: (
+    request: GenerateRequest,
+    onProgress?: (progress: RunProgress) => void,
+  ) => Promise<WorkflowEnvelope>;
   repairScenario: (runId: string, provider: RepairProvider) => Promise<RepairEnvelope>;
 };
 
@@ -36,6 +43,7 @@ export type ScenarioState = {
   promptVariantIndex: number;
   capabilities: CapabilitiesResponse | null;
   workflow: WorkflowEnvelope | null;
+  runProgress: RunProgress | null;
   repairResult: RepairEnvelope | null;
   revisionRequest: string;
   initialized: boolean;
@@ -78,6 +86,7 @@ export function createScenarioStore(api: ScenarioApi = defaultApi) {
     promptVariantIndex: 0,
     capabilities: null,
     workflow: null,
+    runProgress: null,
     repairResult: null,
     revisionRequest: "",
     initialized: false,
@@ -152,14 +161,30 @@ export function createScenarioStore(api: ScenarioApi = defaultApi) {
     generate: async () => {
       const state = get();
       if (state.running || !state.request.trim()) return;
-      set({ running: true, error: null, outcome: null, activeStage: "intent" });
+      set({
+        running: true,
+        error: null,
+        outcome: null,
+        activeStage: "intent",
+        runProgress: null,
+      });
       try {
-        const workflow = await api.generateScenario({
-          scenario_text: state.request.trim(),
-          provider: state.provider,
-          controlled_case_id:
-            state.provider === "controlled_case" ? (state.selectedCaseId ?? undefined) : undefined,
-        });
+        const workflow = await api.generateScenario(
+          {
+            scenario_text: state.request.trim(),
+            provider: state.provider,
+            controlled_case_id:
+              state.provider === "controlled_case"
+                ? (state.selectedCaseId ?? undefined)
+                : undefined,
+          },
+          (runProgress) => {
+            set({
+              runProgress,
+              activeStage: progressStage(runProgress.active_stage, get().activeStage),
+            });
+          },
+        );
         set({ workflow, running: false, activeStage: "intent" });
       } catch (error) {
         set({
@@ -172,16 +197,26 @@ export function createScenarioStore(api: ScenarioApi = defaultApi) {
     revise: async () => {
       const state = get();
       if (state.revising || !state.workflow || !state.revisionRequest.trim()) return;
-      set({ revising: true, error: null, outcome: null });
+      set({ revising: true, error: null, outcome: null, runProgress: null });
       try {
-        const workflow = await api.reviseScenario({
-          scenario_text: state.request.trim(),
-          provider: state.provider,
-          controlled_case_id:
-            state.provider === "controlled_case" ? (state.selectedCaseId ?? undefined) : undefined,
-          revision_request: state.revisionRequest.trim(),
-          base_scenario_type: state.workflow.result.spec.scenario_type,
-        });
+        const workflow = await api.reviseScenario(
+          {
+            scenario_text: state.request.trim(),
+            provider: state.provider,
+            controlled_case_id:
+              state.provider === "controlled_case"
+                ? (state.selectedCaseId ?? undefined)
+                : undefined,
+            revision_request: state.revisionRequest.trim(),
+            base_scenario_type: state.workflow.result.spec.scenario_type,
+          },
+          (runProgress) => {
+            set({
+              runProgress,
+              activeStage: progressStage(runProgress.active_stage, get().activeStage),
+            });
+          },
+        );
         set({ workflow, revising: false, revisionRequest: "", repairResult: null });
       } catch (error) {
         set({
@@ -196,10 +231,7 @@ export function createScenarioStore(api: ScenarioApi = defaultApi) {
       if (state.repairing || !state.workflow) return;
       set({ repairing: true, error: null });
       try {
-        const repairResult = await api.repairScenario(
-          state.workflow.run_id,
-          state.repairProvider,
-        );
+        const repairResult = await api.repairScenario(state.workflow.run_id, state.repairProvider);
         set({ repairResult, repairing: false, activeStage: "repair" });
       } catch (error) {
         set({ repairing: false, error: errorMessage(error) });
@@ -213,6 +245,7 @@ export function createScenarioStore(api: ScenarioApi = defaultApi) {
         error: null,
         outcome: null,
         activeStage: "intent",
+        runProgress: null,
       }),
   }));
 }
@@ -224,10 +257,24 @@ function selectedCase(state: Pick<ScenarioState, "capabilities" | "selectedCaseI
 function clearedCandidateState() {
   return {
     workflow: null,
+    runProgress: null,
     repairResult: null,
     revisionRequest: "",
     activeStage: "intent" as const,
   };
+}
+
+function progressStage(stage: string | null, fallback: StageId): StageId {
+  if (
+    stage === "intent" ||
+    stage === "spec" ||
+    stage === "build" ||
+    stage === "checks" ||
+    stage === "quality" ||
+    stage === "simulation"
+  )
+    return stage;
+  return fallback;
 }
 
 function errorMessage(error: unknown): string {

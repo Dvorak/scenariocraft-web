@@ -7,7 +7,12 @@ import { EmptyMedia } from "./SemanticPreview";
 
 export function EsminiPlayback() {
   const workflow = useScenarioStore((state) => state.workflow);
-  const url = resolveArtifactUrl(workflow?.artifact_urls.playback, API_ORIGIN);
+  const runProgress = useScenarioStore((state) => state.runProgress);
+  const running = useScenarioStore((state) => state.running);
+  const url = resolveArtifactUrl(
+    runProgress?.artifact_urls.playback ?? workflow?.artifact_urls.playback,
+    API_ORIGIN,
+  );
   const playback = workflow?.result.playback_result;
   const kind = typeof playback?.playback_kind === "string" ? playback.playback_kind : "unavailable";
   const isPreviewFallback = kind.startsWith("preview_");
@@ -34,7 +39,11 @@ export function EsminiPlayback() {
             </div>
           </>
         ) : (
-          <EmptyMedia>Verified esmini media is unavailable for this run.</EmptyMedia>
+          <EmptyMedia>
+            {running && runProgress?.active_stage === "simulation"
+              ? "Running esmini and collecting runtime evidence…"
+              : "Verified esmini media is unavailable for this run."}
+          </EmptyMedia>
         )}
       </div>
     </Card>

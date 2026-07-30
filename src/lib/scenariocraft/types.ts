@@ -1,7 +1,7 @@
 export type StageId =
   "intent" | "spec" | "build" | "checks" | "metrics" | "quality" | "simulation" | "repair";
 
-export type StageStatus = "idle" | "running" | "passed" | "warning" | "failed";
+export type StageStatus = "idle" | "running" | "passed" | "warning" | "failed" | "skipped";
 
 export type JsonObject = Record<string, unknown>;
 
@@ -83,12 +83,55 @@ export type WorkflowResult = {
   qc_result?: JsonObject | null;
   esmini_result?: JsonObject | null;
   playback_result?: JsonObject | null;
+  execution_trace?: ExecutionTrace | null;
 };
 
 export type WorkflowEnvelope = {
   run_id: string;
   result: WorkflowResult;
   artifact_urls: Record<string, string>;
+};
+
+export type ProviderUsage = {
+  provider_name: string;
+  model: string;
+  duration_ms: number;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  total_tokens: number | null;
+  local: boolean;
+};
+
+export type ExecutionStage = {
+  stage: string;
+  status: StageStatus;
+  detail: string;
+  duration_ms: number | null;
+};
+
+export type ExecutionTrace = {
+  stages: ExecutionStage[];
+  total_duration_ms: number;
+  provider_usage: ProviderUsage | null;
+};
+
+export type RunProgress = {
+  run_id: string;
+  status: "queued" | "running" | "completed" | "failed";
+  active_stage: string | null;
+  detail: string;
+  elapsed_ms: number;
+  stages: Record<string, Omit<ExecutionStage, "stage">>;
+  provider_usage: ProviderUsage | null;
+  artifact_urls: Record<string, string>;
+  result: WorkflowResult | null;
+  error: ApiErrorBody | null;
+};
+
+export type RunStart = {
+  run_id: string;
+  status: "queued";
+  status_url: string;
 };
 
 export type RepairEnvelope = {
@@ -123,4 +166,5 @@ export type GenerateRequest = {
   revision_request?: string;
   base_scenario_type?: string;
   options?: Record<string, unknown>;
+  async_run?: boolean;
 };

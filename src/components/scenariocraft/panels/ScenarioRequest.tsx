@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Play, RotateCw, Shuffle } from "lucide-react";
+import { LoaderCircle, Play, RotateCw, Shuffle } from "lucide-react";
 import { useScenarioStore } from "@/lib/scenariocraft/store";
 import { Card } from "../primitives";
 
@@ -17,6 +17,8 @@ export function ScenarioRequest() {
   const generate = useScenarioStore((state) => state.generate);
   const shufflePrompt = useScenarioStore((state) => state.shufflePrompt);
   const running = useScenarioStore((state) => state.running);
+  const runProgress = useScenarioStore((state) => state.runProgress);
+  const workflow = useScenarioStore((state) => state.workflow);
   const reset = useScenarioStore((state) => state.reset);
   const local = capabilities?.providers.local_llm;
 
@@ -86,14 +88,31 @@ export function ScenarioRequest() {
         </motion.button>
       </div>
 
-      <div className="mt-3 min-h-5 text-xs text-muted-foreground" role="status">
-        {running
-          ? "Candidate Generation · resolving, checking, and building…"
-          : initializeError
-            ? initializeError
-            : provider === "local_llm" && local?.configured
-              ? `LLM ready · ${local.selected_model ?? "local model"}`
-              : "Ready"}
+      <div
+        className="mt-3 flex min-h-5 flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-muted-foreground"
+        role="status"
+      >
+        <span className="flex min-w-0 items-center gap-1.5">
+          {running && <LoaderCircle className="h-3.5 w-3.5 shrink-0 animate-spin text-coral" />}
+          <span className="truncate">
+            {running
+              ? `${runProgress?.detail ?? "Starting Candidate Generation"} · ${formatDuration(runProgress?.elapsed_ms)}`
+              : initializeError
+                ? initializeError
+                : provider === "local_llm" && local?.configured
+                  ? `LLM ready · ${local.selected_model ?? "local model"}`
+                  : "Ready"}
+          </span>
+        </span>
+        {usageLabel(
+          runProgress?.provider_usage ?? workflow?.result.execution_trace?.provider_usage,
+        ) && (
+          <span className="shrink-0 font-mono tabular-nums">
+            {usageLabel(
+              runProgress?.provider_usage ?? workflow?.result.execution_trace?.provider_usage,
+            )}
+          </span>
+        )}
       </div>
 
       {outcome && (
@@ -111,6 +130,25 @@ export function ScenarioRequest() {
       )}
     </Card>
   );
+}
+
+function formatDuration(durationMs: number | undefined): string {
+  if (durationMs == null) return "0.0 s";
+  return `${(durationMs / 1000).toFixed(1)} s`;
+}
+
+function usageLabel(
+  usage:
+    | {
+        total_tokens: number | null;
+        local: boolean;
+      }
+    | null
+    | undefined,
+): string | null {
+  if (!usage) return null;
+  const tokens = usage.total_tokens == null ? "tokens unavailable" : `${usage.total_tokens} tokens`;
+  return usage.local ? `${tokens} · local` : tokens;
 }
 
 function Select({

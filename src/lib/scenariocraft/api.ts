@@ -4,6 +4,8 @@ import type {
   GenerateRequest,
   RepairEnvelope,
   RepairProvider,
+  RunProgress,
+  RunStart,
   WorkflowEnvelope,
 } from "./types";
 
@@ -27,20 +29,51 @@ export async function getCapabilities(): Promise<CapabilitiesResponse> {
   return requestJson<CapabilitiesResponse>("/api/capabilities");
 }
 
-export async function generateScenario(payload: GenerateRequest): Promise<WorkflowEnvelope> {
-  return requestJson<WorkflowEnvelope>("/api/scenarios/generate", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+export async function generateScenario(
+  payload: GenerateRequest,
+  onProgress?: (progress: RunProgress) => void,
+): Promise<WorkflowEnvelope> {
+  return runScenario("/api/scenarios/generate", payload, onProgress);
 }
 
-export async function reviseScenario(payload: GenerateRequest): Promise<WorkflowEnvelope> {
-  return requestJson<WorkflowEnvelope>("/api/scenarios/revise", {
+export async function reviseScenario(
+  payload: GenerateRequest,
+  onProgress?: (progress: RunProgress) => void,
+): Promise<WorkflowEnvelope> {
+  return runScenario("/api/scenarios/revise", payload, onProgress);
+}
+
+async function runScenario(
+  path: string,
+  payload: GenerateRequest,
+  onProgress?: (progress: RunProgress) => void,
+): Promise<WorkflowEnvelope> {
+  const started = await requestJson<RunStart>(path, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ ...payload, async_run: true }),
   });
+  while (true) {
+    const progress = await requestJson<RunProgress>(started.status_url);
+    onProgress?.(progress);
+    if (progress.status === "completed" && progress.result) {
+      return {
+        run_id: progress.run_id,
+        result: progress.result,
+        artifact_urls: progress.artifact_urls,
+      };
+    }
+    if (progress.status === "failed") {
+      throw new ScenarioCraftApiError(
+        422,
+        progress.error ?? {
+          error: "workflow_failed",
+          message: progress.detail,
+        },
+      );
+    }
+    await wait(500);
+  }
 }
 
 export async function repairScenario(
@@ -59,4 +92,8 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const body = (await response.json()) as T | ApiErrorBody;
   if (!response.ok) throw new ScenarioCraftApiError(response.status, body as ApiErrorBody);
   return body as T;
+}
+
+function wait(durationMs: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, durationMs));
 }

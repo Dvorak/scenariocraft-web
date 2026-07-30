@@ -6,8 +6,12 @@ import { Card } from "../primitives";
 
 export function SemanticPreview() {
   const workflow = useScenarioStore((state) => state.workflow);
+  const runProgress = useScenarioStore((state) => state.runProgress);
   const running = useScenarioStore((state) => state.running);
-  const url = resolveArtifactUrl(workflow?.artifact_urls.preview, API_ORIGIN);
+  const url = resolveArtifactUrl(
+    runProgress?.artifact_urls.preview ?? workflow?.artifact_urls.preview,
+    API_ORIGIN,
+  );
 
   return (
     <Card title="Preview 2D Semantic" icon={<Eye className="h-4 w-4" />} padded={false}>
@@ -20,7 +24,11 @@ export function SemanticPreview() {
           />
         ) : (
           <EmptyMedia>
-            {running ? "Building semantic preview…" : "Generate a scenario to preview it."}
+            {running
+              ? runProgress?.active_stage === "intent"
+                ? "Waiting for ScenarioIntent…"
+                : "Building semantic preview…"
+              : "Generate a scenario to preview it."}
           </EmptyMedia>
         )}
       </div>

@@ -29,10 +29,17 @@ const icons: Record<StageId, LucideIcon> = {
 export function PipelineStepper() {
   const workflow = useScenarioStore((s) => s.workflow);
   const running = useScenarioStore((s) => s.running);
+  const runProgress = useScenarioStore((s) => s.runProgress);
   const active = useScenarioStore((s) => s.activeStage);
   const setStage = useScenarioStore((s) => s.setStage);
   const status = workflow ? projectWorkflowResult(workflow).stages : emptyStages();
-  if (running && !workflow) status.intent = "running";
+  if (runProgress) {
+    for (const [stage, detail] of Object.entries(runProgress.stages)) {
+      if (stage in status) status[stage as StageId] = detail.status;
+    }
+  } else if (running && !workflow) {
+    status.intent = "running";
+  }
 
   return (
     <div
@@ -49,7 +56,7 @@ export function PipelineStepper() {
         const Icon = icons[stage.id];
         const st = status[stage.id];
         const isActive = active === stage.id;
-        const isDone = st === "passed" || st === "warning";
+        const isDone = st === "passed" || st === "warning" || st === "skipped";
         return (
           <div key={stage.id} className="flex min-w-0 flex-1 items-start">
             <button

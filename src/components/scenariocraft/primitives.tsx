@@ -35,7 +35,7 @@ export function StatusDot({
   status,
   className = "",
 }: {
-  status: "passed" | "warning" | "failed" | "idle" | "running";
+  status: "passed" | "warning" | "failed" | "idle" | "running" | "skipped";
   className?: string;
 }) {
   const color =

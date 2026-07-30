@@ -45,7 +45,7 @@ export function StageDetail() {
   }
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
+    <div className="grid min-w-0 gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
       <AnimatePresence mode="wait">
         <motion.div
           key={active}
@@ -53,6 +53,7 @@ export function StageDetail() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -4 }}
           transition={{ duration: 0.18 }}
+          className="min-w-0"
         >
           <PrimaryForStage
             stage={active}
@@ -61,7 +62,7 @@ export function StageDetail() {
           />
         </motion.div>
       </AnimatePresence>
-      <div className="flex flex-col gap-5">
+      <div className="flex min-w-0 flex-col gap-5">
         <RunSummary workflow={workflow} />
         <EvidenceSummary workflow={workflow} />
       </div>
@@ -249,6 +250,8 @@ function MetricsDetail({ workflow }: { workflow: WorkflowEnvelope }) {
 
 function RunSummary({ workflow }: { workflow: WorkflowEnvelope }) {
   const view = projectWorkflowResult(workflow);
+  const trace = workflow.result.execution_trace;
+  const usage = trace?.provider_usage;
   return (
     <Card title="Run" icon={<Play className="h-4 w-4" />}>
       <div className="space-y-2">
@@ -262,7 +265,38 @@ function RunSummary({ workflow }: { workflow: WorkflowEnvelope }) {
         />
         <KeyValueRow label="Family" value={view.brief.family} />
         <KeyValueRow label="Artifacts" value={String(Object.keys(workflow.artifact_urls).length)} />
+        <KeyValueRow
+          label="Total duration"
+          value={trace ? `${(trace.total_duration_ms / 1000).toFixed(1)} s` : "n/a"}
+        />
+        <KeyValueRow
+          label="Provider"
+          value={usage ? `${usage.provider_name} · ${usage.model}` : "deterministic"}
+        />
+        <KeyValueRow
+          label="Tokens"
+          value={
+            usage?.total_tokens == null
+              ? "unavailable"
+              : `${usage.total_tokens.toLocaleString()}${usage.local ? " · local" : ""}`
+          }
+        />
       </div>
+      {trace && (
+        <div className="mt-3 space-y-1.5 border-t border-border/70 pt-3">
+          {trace.stages.map((stage) => (
+            <div
+              key={stage.stage}
+              className="flex items-center justify-between gap-3 text-xs text-muted-foreground"
+            >
+              <span className="truncate">{humanize(stage.stage)}</span>
+              <span className="shrink-0 font-mono tabular-nums">
+                {stage.duration_ms == null ? "—" : `${stage.duration_ms} ms`}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </Card>
   );
 }
