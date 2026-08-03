@@ -14,7 +14,7 @@ From the parent ScenarioCraft repository, install and start both services:
 ```
 
 Open <http://localhost:3000>. The Python API runs at
-<http://localhost:8000>.
+<http://localhost:8010>.
 
 For frontend-only development, first start the Python API and then run:
 
@@ -24,7 +24,8 @@ npm run dev -- --host 127.0.0.1 --port 3000
 ```
 
 Set `VITE_SCENARIOCRAFT_API_URL` when the API is not available at the default
-`http://localhost:8000` origin.
+`http://localhost:8010` origin. The root `just web` command injects the matching
+origin automatically; override its API port with `SCENARIOCRAFT_API_PORT`.
 
 This checkout is connected to Lovable through GitHub. Keep commits small and
 working, and do not rewrite published history.
