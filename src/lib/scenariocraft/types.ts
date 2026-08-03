@@ -13,6 +13,29 @@ export type ControlledCase = {
   prompt_variants: string[];
 };
 
+export type ParameterDomain = {
+  name: string;
+  kind: "float" | "int" | "str" | "bool";
+  default: unknown;
+  unit?: string;
+  min_value?: number;
+  max_value?: number;
+  allowed_values?: unknown[];
+  description?: string;
+  user_settable: boolean;
+};
+
+export type RevisionCapability = {
+  template_id: string;
+  parameter_domains: ParameterDomain[];
+  compatible_road_assets: string[];
+  ambient_vehicle_count: {
+    kind: "int";
+    min_value: number;
+    max_value: number;
+  };
+};
+
 export type CapabilitiesResponse = {
   providers: {
     controlled_case: { configured: boolean };
@@ -26,6 +49,7 @@ export type CapabilitiesResponse = {
     };
   };
   controlled_cases: ControlledCase[];
+  revision_capabilities: Record<string, RevisionCapability>;
 };
 
 export type CheckResult = JsonObject & {
@@ -66,12 +90,30 @@ export type CandidateTrace = {
   check_summary: JsonObject;
 };
 
+export type RevisionChange = {
+  kind: "parameter" | "actors" | "road";
+  field: string;
+  before: unknown;
+  after: unknown;
+};
+
+export type RevisionTrace = {
+  loop_name: "Scenario Revision Loop";
+  status: "applied";
+  template_id: string;
+  revision_request: string;
+  changes: RevisionChange[];
+  preserved_parameter_count: number;
+  provider_name: string;
+};
+
 export type WorkflowResult = {
   request: JsonObject & { scenario_text?: string; provider_name?: string };
   status: { terminal_status: string; terminal_reason: string; warnings: string[] };
   artifacts: JsonObject;
   intent_proposal?: JsonObject | null;
   candidate_trace?: CandidateTrace | null;
+  revision_trace?: RevisionTrace | null;
   spec: ScenarioSpec;
   original_spec?: ScenarioSpec | null;
   prepared_case?: JsonObject | null;
@@ -100,6 +142,11 @@ export type ProviderUsage = {
   output_tokens: number | null;
   total_tokens: number | null;
   local: boolean;
+};
+
+export type ScenarioIdeaResponse = {
+  scenario_text: string;
+  provider_usage: ProviderUsage;
 };
 
 export type ExecutionStage = {
@@ -145,6 +192,8 @@ export type RepairProvider = "local_llm" | "deterministic_demo";
 
 export type IntentOutcome = {
   status?: string;
+  message?: string;
+  details?: JsonObject;
   rationale?: string;
   refusal_reason?: string | null;
   clarification_question?: string | null;
@@ -165,6 +214,8 @@ export type GenerateRequest = {
   demo_case_id?: string;
   revision_request?: string;
   base_scenario_type?: string;
+  base_run_id?: string;
+  template_parameters?: Record<string, unknown>;
   options?: Record<string, unknown>;
   async_run?: boolean;
 };

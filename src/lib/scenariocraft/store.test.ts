@@ -31,6 +31,24 @@ const capabilities: CapabilitiesResponse = {
       prompt_variants: ["A lead vehicle brakes."],
     },
   ],
+  revision_capabilities: {
+    cut_in: {
+      template_id: "cut_in",
+      parameter_domains: [
+        {
+          name: "initial_gap_m",
+          kind: "float",
+          default: 22,
+          min_value: 14,
+          max_value: 35,
+          unit: "m",
+          user_settable: true,
+        },
+      ],
+      compatible_road_assets: ["multi_lane_same_direction"],
+      ambient_vehicle_count: { kind: "int", min_value: 0, max_value: 2 },
+    },
+  },
 };
 
 const envelope = {
@@ -93,6 +111,53 @@ describe("scenario store", () => {
     expect(store.getState().error).toBeNull();
   });
 
+  it("uses the real LLM idea endpoint to fill the request without generating", async () => {
+    let generationCalls = 0;
+    let previousIdeas: string[] = [];
+    const api: ScenarioApi = {
+      getCapabilities: async () => capabilities,
+      generateScenario: async () => {
+        generationCalls += 1;
+        return envelope;
+      },
+      reviseScenario: async () => envelope,
+      repairScenario: async () => ({
+        run_id: "repair-1",
+        source_run_id: "run-1",
+        repair_result: {},
+        artifact_urls: {},
+      }),
+      suggestScenarioIdea: async (ideas = []) => {
+        previousIdeas = ideas;
+        return {
+          scenario_text:
+            "At a rural junction, a motorcycle emerges from a side road ahead of the ego vehicle.",
+          provider_usage: {
+            provider_name: "openai_compatible",
+            model: "qwen2.5:7b",
+            duration_ms: 250,
+            input_tokens: 30,
+            output_tokens: 18,
+            total_tokens: 48,
+            local: true,
+          },
+        };
+      },
+    };
+    const store = createScenarioStore(api);
+    await store.getState().initialize();
+    const original = store.getState().request;
+    store.getState().setProvider("local_llm");
+
+    await store.getState().suggestIdea();
+
+    expect(previousIdeas).toEqual([original]);
+    expect(store.getState().request).toContain("motorcycle emerges");
+    expect(store.getState().ideaUsage?.total_tokens).toBe(48);
+    expect(store.getState().workflow).toBeNull();
+    expect(generationCalls).toBe(0);
+  });
+
   it("projects live workflow progress before the final envelope arrives", async () => {
     const progress = {
       run_id: "run-1",
@@ -143,6 +208,8 @@ describe("scenario store", () => {
 
   it("sends revisions through the dedicated endpoint and replaces the active workflow", async () => {
     let revisionRequest = "";
+    let baseRunId = "";
+    let provider = "";
     const revised = structuredClone(envelope);
     revised.run_id = "run-2";
     const api: ScenarioApi = {
@@ -150,6 +217,8 @@ describe("scenario store", () => {
       generateScenario: async () => envelope,
       reviseScenario: async (request) => {
         revisionRequest = request.revision_request ?? "";
+        baseRunId = request.base_run_id ?? "";
+        provider = request.provider;
         return revised;
       },
       repairScenario: async () => ({
@@ -167,8 +236,39 @@ describe("scenario store", () => {
     await store.getState().revise();
 
     expect(revisionRequest).toBe("Use a shorter gap.");
+    expect(baseRunId).toBe("run-1");
+    expect(provider).toBe("local_llm");
     expect(store.getState().workflow?.run_id).toBe("run-2");
     expect(store.getState().revisionRequest).toBe("");
+  });
+
+  it("sends direct parameter revisions without invoking the LLM", async () => {
+    let submittedParameters: Record<string, unknown> = {};
+    let provider = "";
+    const api: ScenarioApi = {
+      getCapabilities: async () => capabilities,
+      generateScenario: async () => envelope,
+      reviseScenario: async (request) => {
+        submittedParameters = request.template_parameters ?? {};
+        provider = request.provider;
+        return envelope;
+      },
+      repairScenario: async () => ({
+        run_id: "repair-1",
+        source_run_id: "run-1",
+        repair_result: {},
+        artifact_urls: {},
+      }),
+    };
+    const store = createScenarioStore(api);
+    await store.getState().initialize();
+    await store.getState().generate();
+    store.getState().setRevisionParameter("initial_gap_m", 16);
+
+    await store.getState().revise();
+
+    expect(provider).toBe("controlled_case");
+    expect(submittedParameters).toEqual({ initial_gap_m: 16 });
   });
 
   it("clears stale workflow output when generation inputs change", async () => {

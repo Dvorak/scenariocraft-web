@@ -6,12 +6,13 @@ import type {
   RepairProvider,
   RunProgress,
   RunStart,
+  ScenarioIdeaResponse,
   WorkflowEnvelope,
 } from "./types";
 
 export const API_ORIGIN =
   (import.meta.env.VITE_SCENARIOCRAFT_API_URL as string | undefined)?.replace(/\/$/, "") ??
-  "http://localhost:8000";
+  "http://localhost:8010";
 
 export class ScenarioCraftApiError extends Error {
   readonly status: number;
@@ -27,6 +28,19 @@ export class ScenarioCraftApiError extends Error {
 
 export async function getCapabilities(): Promise<CapabilitiesResponse> {
   return requestJson<CapabilitiesResponse>("/api/capabilities");
+}
+
+export async function suggestScenarioIdea(
+  previousIdeas: string[] = [],
+): Promise<ScenarioIdeaResponse> {
+  return requestJson<ScenarioIdeaResponse>("/api/scenario-ideas", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      language: "English",
+      previous_ideas: previousIdeas,
+    }),
+  });
 }
 
 export async function generateScenario(
@@ -89,9 +103,28 @@ export async function repairScenario(
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_ORIGIN}${path}`, init);
-  const body = (await response.json()) as T | ApiErrorBody;
+  const body = await parseResponse<T>(response);
   if (!response.ok) throw new ScenarioCraftApiError(response.status, body as ApiErrorBody);
   return body as T;
+}
+
+async function parseResponse<T>(response: Response): Promise<T | ApiErrorBody> {
+  const rawBody = await response.text();
+  if (rawBody) {
+    try {
+      return JSON.parse(rawBody) as T | ApiErrorBody;
+    } catch {
+      // Fall through to a stable API error instead of exposing a JSON parser failure.
+    }
+  }
+  const staleApi =
+    response.status === 404
+      ? " The local API may be outdated; restart `.venv/bin/just web`."
+      : "";
+  return {
+    error: "invalid_api_response",
+    message: `ScenarioCraft API returned ${response.status} ${response.statusText || "without JSON"}.${staleApi}`,
+  };
 }
 
 function wait(durationMs: number): Promise<void> {
