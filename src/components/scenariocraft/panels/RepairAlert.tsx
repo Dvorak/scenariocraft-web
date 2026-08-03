@@ -2,7 +2,7 @@ import { AlertTriangle } from "lucide-react";
 import { candidateFailures } from "@/lib/scenariocraft/resultView";
 import { useScenarioStore } from "@/lib/scenariocraft/store";
 
-export function RepairAlert() {
+export function RepairAlert({ embedded = false }: { embedded?: boolean } = {}) {
   const workflow = useScenarioStore((state) => state.workflow);
   const repair = useScenarioStore((state) => state.repair);
   const repairing = useScenarioStore((state) => state.repairing);
@@ -19,7 +19,11 @@ export function RepairAlert() {
   if (!repairRequired && !candidateRejected) return null;
 
   return (
-    <section className="rounded-2xl border border-coral/25 bg-coral-soft p-5 shadow-card">
+    <section
+      className={`border border-coral/25 bg-coral-soft ${
+        embedded ? "ml-10 rounded-[4px_12px_12px_12px] p-3.5" : "rounded-2xl p-5 shadow-card"
+      }`}
+    >
       <header className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
         <AlertTriangle className="h-4 w-4 text-coral" />
         {repairRequired ? "Repair Available" : "Candidate Rejected"}

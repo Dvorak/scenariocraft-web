@@ -115,11 +115,14 @@ export function ScenarioRequest() {
         )}
       </div>
 
-      {outcome && (
+      {outcome && !workflow && (
         <div className="mt-2 rounded-xl border border-warning/30 bg-warning/10 px-3.5 py-3 text-xs leading-relaxed">
           <div className="font-semibold">{outcome.status ?? "Intent needs attention"}</div>
           <div className="mt-1 text-muted-foreground">
-            {outcome.clarification_question ?? outcome.rationale ?? outcome.refusal_reason}
+            {outcome.clarification_question ??
+              outcome.message ??
+              outcome.rationale ??
+              outcome.refusal_reason}
           </div>
           {!!outcome.nearest_template_candidates?.length && (
             <div className="mt-1.5 text-muted-foreground">

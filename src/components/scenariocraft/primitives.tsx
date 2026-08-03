@@ -6,6 +6,7 @@ export function Card({
   action,
   children,
   className = "",
+  bodyClassName = "",
   padded = true,
 }: {
   title?: ReactNode;
@@ -13,6 +14,7 @@ export function Card({
   action?: ReactNode;
   children: ReactNode;
   className?: string;
+  bodyClassName?: string;
   padded?: boolean;
 }) {
   return (
@@ -26,7 +28,7 @@ export function Card({
           {action}
         </header>
       )}
-      <div className={padded ? "p-5" : ""}>{children}</div>
+      <div className={`${padded ? "p-5" : ""} ${bodyClassName}`}>{children}</div>
     </section>
   );
 }
