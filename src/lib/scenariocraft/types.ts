@@ -120,8 +120,8 @@ export type WorkflowResult = {
   original_spec?: ScenarioSpec | null;
   prepared_case?: JsonObject | null;
   build_result?: JsonObject | null;
-  semantic_result?: (JsonObject & { passed?: boolean }) | null;
-  geometry_check_results?: CheckResult[];
+  structural_check_results?: CheckResult[];
+  family_check_results?: CheckResult[];
   artifact_check_results?: CheckResult[];
   runtime_check_results?: CheckResult[];
   qc_result?: JsonObject | null;
@@ -190,7 +190,7 @@ export type RepairEnvelope = {
   artifact_urls: Record<string, string>;
 };
 
-export type RepairProvider = "llm" | "deterministic_demo";
+export type RepairProvider = "llm" | "deterministic";
 
 export type IntentOutcome = {
   status?: string;
@@ -213,7 +213,7 @@ export type GenerateRequest = {
   scenario_text: string;
   provider: "controlled_case" | "llm";
   controlled_case_id?: string;
-  demo_case_id?: string;
+  repair_experiment_id?: string;
   revision_request?: string;
   base_scenario_type?: string;
   base_run_id?: string;

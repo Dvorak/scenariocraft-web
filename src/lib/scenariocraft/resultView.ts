@@ -34,7 +34,7 @@ export function projectWorkflowResult(envelope: WorkflowEnvelope): WorkflowView 
   const result = envelope.result;
   const candidateCheckResults = candidateChecks(envelope);
   const runtimeCheckResults = runtimeChecks(envelope);
-  const checkStatus = projectChecks(result.semantic_result?.passed, candidateCheckResults);
+  const checkStatus = projectChecks(candidateCheckResults);
   const actors = result.spec.actors ?? [];
   const ego = actors.find((actor) => actor.role === "ego" || actor.id === "ego");
   const secondary = actors.find((actor) => actor !== ego);
@@ -85,9 +85,9 @@ export function resolveArtifactUrl(path: string | undefined, apiOrigin: string):
   return `${apiOrigin.replace(/\/$/, "")}/${path.replace(/^\//, "")}`;
 }
 
-function projectChecks(semanticPassed: boolean | undefined, checks: CheckResult[]): StageStatus {
-  if (semanticPassed === false || checks.some((check) => check.passed === false)) return "failed";
-  if (semanticPassed === true || checks.length > 0) return "passed";
+function projectChecks(checks: CheckResult[]): StageStatus {
+  if (checks.some((check) => check.passed === false)) return "failed";
+  if (checks.length > 0) return "passed";
   return "idle";
 }
 
@@ -144,7 +144,8 @@ export function humanize(value: string): string {
 
 export function candidateChecks(envelope: WorkflowEnvelope): CheckResult[] {
   return [
-    ...(envelope.result.geometry_check_results ?? []),
+    ...(envelope.result.structural_check_results ?? []),
+    ...(envelope.result.family_check_results ?? []),
     ...(envelope.result.artifact_check_results ?? []),
   ];
 }

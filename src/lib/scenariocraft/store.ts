@@ -107,7 +107,7 @@ export function createScenarioStore(api: ScenarioApi = defaultApi) {
     repairing: false,
     suggesting: false,
     ideaUsage: null,
-    repairProvider: "deterministic_demo",
+    repairProvider: "deterministic",
     error: null,
     outcome: null,
     setView: (view) => set({ view }),
@@ -200,7 +200,7 @@ export function createScenarioStore(api: ScenarioApi = defaultApi) {
           initializing: false,
           repairProvider: capabilities.providers.llm.configured
             ? "llm"
-            : "deterministic_demo",
+            : "deterministic",
         });
       } catch (error) {
         set({ initializing: false, initialized: true, error: errorMessage(error) });

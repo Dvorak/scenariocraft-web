@@ -46,8 +46,8 @@ const envelope: WorkflowEnvelope = {
       xodr_path: "road.xodr",
       builder: "scenariogeneration",
     },
-    semantic_result: { passed: true },
-    geometry_check_results: [{ name: "gap", passed: true }],
+    structural_check_results: [{ name: "scenario_name_present", passed: true }],
+    family_check_results: [{ name: "gap", passed: true }],
     artifact_check_results: [{ name: "poses", passed: true }],
     runtime_check_results: [],
     qc_result: { available: true, passed: true },
@@ -85,7 +85,7 @@ describe("projectWorkflowResult", () => {
 
   it("keeps failed checks visible even when a candidate result exists", () => {
     const failed = structuredClone(envelope);
-    failed.result.geometry_check_results = [{ name: "gap", passed: false }];
+    failed.result.family_check_results = [{ name: "gap", passed: false }];
 
     expect(projectWorkflowResult(failed).stages.checks).toBe("failed");
   });
@@ -128,11 +128,15 @@ describe("resolveArtifactUrl", () => {
 describe("check evidence groups", () => {
   it("keeps candidate acceptance checks separate from runtime evidence", () => {
     const grouped = structuredClone(envelope);
-    grouped.result.geometry_check_results = [{ name: "geometry", passed: true }];
+    grouped.result.family_check_results = [{ name: "geometry", passed: true }];
     grouped.result.artifact_check_results = [{ name: "artifact", passed: true }];
     grouped.result.runtime_check_results = [{ name: "runtime", passed: false }];
 
-    expect(candidateChecks(grouped).map((check) => check.name)).toEqual(["geometry", "artifact"]);
+    expect(candidateChecks(grouped).map((check) => check.name)).toEqual([
+      "scenario_name_present",
+      "geometry",
+      "artifact",
+    ]);
     expect(runtimeChecks(grouped).map((check) => check.name)).toEqual(["runtime"]);
   });
 });

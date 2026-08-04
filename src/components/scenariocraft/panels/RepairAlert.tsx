@@ -50,12 +50,12 @@ export function RepairAlert({ embedded = false }: { embedded?: boolean } = {}) {
             id="repair-provider"
             value={repairProvider}
             onChange={(event) =>
-              setRepairProvider(event.target.value as "llm" | "deterministic_demo")
+              setRepairProvider(event.target.value as "llm" | "deterministic")
             }
             className="h-10 min-w-0 rounded-xl border border-coral/30 bg-surface px-3 text-sm font-medium"
           >
             {llmReady && <option value="llm">LLM · PatchSpec</option>}
-            <option value="deterministic_demo">Deterministic demo</option>
+            <option value="deterministic">Deterministic</option>
           </select>
           <button
             type="button"
