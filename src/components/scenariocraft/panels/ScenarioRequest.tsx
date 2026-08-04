@@ -20,7 +20,7 @@ export function ScenarioRequest() {
   const runProgress = useScenarioStore((state) => state.runProgress);
   const workflow = useScenarioStore((state) => state.workflow);
   const reset = useScenarioStore((state) => state.reset);
-  const local = capabilities?.providers.local_llm;
+  const llm = capabilities?.providers.llm;
 
   return (
     <Card title="Scenario Request">
@@ -40,7 +40,7 @@ export function ScenarioRequest() {
           label="Provider"
         >
           <option value="controlled_case">Demo</option>
-          <option value="local_llm">LLM</option>
+          <option value="llm">LLM</option>
         </Select>
 
         {provider === "controlled_case" ? (
@@ -54,9 +54,9 @@ export function ScenarioRequest() {
         ) : (
           <div className="flex min-w-0 items-center rounded-xl border border-border bg-surface px-3.5 text-sm text-muted-foreground">
             <span className="truncate">
-              {local?.configured
-                ? `ollama · ${local.selected_model ?? "model ready"}`
-                : (local?.message ?? "Local LLM not configured")}
+              {llm?.configured
+                ? `${llm.display_name ?? "LLM"} · ${llm.selected_model ?? "model ready"}`
+                : (llm?.message ?? "LLM not configured")}
             </span>
           </div>
         )}
@@ -78,7 +78,7 @@ export function ScenarioRequest() {
         <motion.button
           type="button"
           onClick={() => void generate()}
-          disabled={running || !request.trim() || (provider === "local_llm" && !local?.configured)}
+          disabled={running || !request.trim() || (provider === "llm" && !llm?.configured)}
           whileTap={{ scale: 0.96 }}
           className="grid h-10 w-10 place-items-center self-center rounded-xl bg-coral text-coral-foreground shadow-[0_6px_18px_-6px_oklch(0.68_0.19_25/0.6)] transition-transform hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-45"
           title="Generate"
@@ -99,8 +99,8 @@ export function ScenarioRequest() {
               ? `${runProgress?.detail ?? "Starting Candidate Generation"} · ${formatDuration(runProgress?.elapsed_ms)}`
               : initializeError
                 ? initializeError
-                : provider === "local_llm" && local?.configured
-                  ? `LLM ready · ${local.selected_model ?? "local model"}`
+                : provider === "llm" && llm?.configured
+                  ? `LLM ready · ${llm.selected_model ?? "model ready"}`
                   : "Ready"}
           </span>
         </span>

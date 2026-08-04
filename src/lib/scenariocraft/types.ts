@@ -39,9 +39,11 @@ export type RevisionCapability = {
 export type CapabilitiesResponse = {
   providers: {
     controlled_case: { configured: boolean };
-    local_llm: {
+    llm: {
       configured: boolean;
       reachable: boolean;
+      display_name: string;
+      hosted: boolean;
       server_url: string;
       models: string[];
       selected_model: string | null;
@@ -188,7 +190,7 @@ export type RepairEnvelope = {
   artifact_urls: Record<string, string>;
 };
 
-export type RepairProvider = "local_llm" | "deterministic_demo";
+export type RepairProvider = "llm" | "deterministic_demo";
 
 export type IntentOutcome = {
   status?: string;
@@ -209,7 +211,7 @@ export type ApiErrorBody = {
 
 export type GenerateRequest = {
   scenario_text: string;
-  provider: "controlled_case" | "local_llm";
+  provider: "controlled_case" | "llm";
   controlled_case_id?: string;
   demo_case_id?: string;
   revision_request?: string;

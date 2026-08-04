@@ -164,8 +164,8 @@ export function createScenarioStore(api: ScenarioApi = defaultApi) {
       if (
         state.suggesting ||
         state.running ||
-        state.provider !== "local_llm" ||
-        !state.capabilities?.providers.local_llm.configured
+        state.provider !== "llm" ||
+        !state.capabilities?.providers.llm.configured
       )
         return;
       const suggest = api.suggestScenarioIdea;
@@ -198,8 +198,8 @@ export function createScenarioStore(api: ScenarioApi = defaultApi) {
           request: firstCase?.prompt_variants[0] ?? "",
           initialized: true,
           initializing: false,
-          repairProvider: capabilities.providers.local_llm.configured
-            ? "local_llm"
+          repairProvider: capabilities.providers.llm.configured
+            ? "llm"
             : "deterministic_demo",
         });
       } catch (error) {
@@ -254,7 +254,7 @@ export function createScenarioStore(api: ScenarioApi = defaultApi) {
         const workflow = await api.reviseScenario(
           {
             scenario_text: state.request.trim(),
-            provider: useLlm ? "local_llm" : "controlled_case",
+            provider: useLlm ? "llm" : "controlled_case",
             controlled_case_id: !useLlm ? (state.selectedCaseId ?? undefined) : undefined,
             revision_request: state.revisionRequest.trim() || undefined,
             base_scenario_type: state.workflow.result.spec.scenario_type,

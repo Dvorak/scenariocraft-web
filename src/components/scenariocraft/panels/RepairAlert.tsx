@@ -9,8 +9,8 @@ export function RepairAlert({ embedded = false }: { embedded?: boolean } = {}) {
   const repairProvider = useScenarioStore((state) => state.repairProvider);
   const setRepairProvider = useScenarioStore((state) => state.setRepairProvider);
   const repairResult = useScenarioStore((state) => state.repairResult);
-  const localLlmReady = useScenarioStore(
-    (state) => state.capabilities?.providers.local_llm.configured === true,
+  const llmReady = useScenarioStore(
+    (state) => state.capabilities?.providers.llm.configured === true,
   );
   if (!workflow) return null;
   const failures = candidateFailures(workflow);
@@ -50,11 +50,11 @@ export function RepairAlert({ embedded = false }: { embedded?: boolean } = {}) {
             id="repair-provider"
             value={repairProvider}
             onChange={(event) =>
-              setRepairProvider(event.target.value as "local_llm" | "deterministic_demo")
+              setRepairProvider(event.target.value as "llm" | "deterministic_demo")
             }
             className="h-10 min-w-0 rounded-xl border border-coral/30 bg-surface px-3 text-sm font-medium"
           >
-            {localLlmReady && <option value="local_llm">Local LLM · PatchSpec</option>}
+            {llmReady && <option value="llm">LLM · PatchSpec</option>}
             <option value="deterministic_demo">Deterministic demo</option>
           </select>
           <button

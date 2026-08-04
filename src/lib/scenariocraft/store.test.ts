@@ -6,9 +6,11 @@ import type { CapabilitiesResponse, RunProgress, WorkflowEnvelope } from "./type
 const capabilities: CapabilitiesResponse = {
   providers: {
     controlled_case: { configured: true },
-    local_llm: {
+    llm: {
       configured: true,
       reachable: true,
+      display_name: "ollama",
+      hosted: false,
       server_url: "http://localhost:11434/v1",
       models: ["qwen2.5:7b"],
       selected_model: "qwen2.5:7b",
@@ -147,7 +149,7 @@ describe("scenario store", () => {
     const store = createScenarioStore(api);
     await store.getState().initialize();
     const original = store.getState().request;
-    store.getState().setProvider("local_llm");
+    store.getState().setProvider("llm");
 
     await store.getState().suggestIdea();
 
@@ -237,7 +239,7 @@ describe("scenario store", () => {
 
     expect(revisionRequest).toBe("Use a shorter gap.");
     expect(baseRunId).toBe("run-1");
-    expect(provider).toBe("local_llm");
+    expect(provider).toBe("llm");
     expect(store.getState().workflow?.run_id).toBe("run-2");
     expect(store.getState().revisionRequest).toBe("");
   });
@@ -322,7 +324,7 @@ describe("scenario store", () => {
       };
       const store = createScenarioStore(api);
       await store.getState().initialize();
-      store.getState().setProvider("local_llm");
+      store.getState().setProvider("llm");
 
       await store.getState().generate();
 
@@ -356,10 +358,10 @@ describe("scenario store", () => {
     await store.getState().initialize();
     await store.getState().generate();
 
-    expect(store.getState().repairProvider).toBe("local_llm");
+    expect(store.getState().repairProvider).toBe("llm");
     await store.getState().repair();
 
-    expect(submittedProvider).toBe("local_llm");
+    expect(submittedProvider).toBe("llm");
     expect(store.getState().repairResult?.repair_result.terminal_status).toBe("passed");
   });
 });
